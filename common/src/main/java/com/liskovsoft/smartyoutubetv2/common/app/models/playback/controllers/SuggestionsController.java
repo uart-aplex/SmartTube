@@ -283,6 +283,9 @@ public class SuggestionsController extends BasePlayerController {
         if (next != null) {
             next.fromQueue = true;
             result = next;
+        } else if (getVideo().nextMediaItem != null && getVideo().nextMediaItem.getPlaylistId() != null) {
+            // Playlist/Mix next video takes priority over section suggestion
+            result = Video.from(getVideo().nextMediaItem);
         } else if (mNextSectionVideo != null && !getVideo().isShuffled) {
             result = mNextSectionVideo;
         } else if (getVideo().nextMediaItem != null) {
