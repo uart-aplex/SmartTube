@@ -468,8 +468,8 @@ public class VideoLoaderController extends BasePlayerController {
                 break;
             case PlayerConstants.PLAYBACK_MODE_CLOSE:
                 // Close player if suggestions not shown
-                // Except when playing from queue
-                if (mPlaylist.getNext() != null && !getPlayerTweaksData().isQueueRespectsPlaybackMode()) {
+                // Except when playing from queue or playlist/mix
+                if ((mPlaylist.getNext() != null && !getPlayerTweaksData().isQueueRespectsPlaybackMode()) || video.hasNextPlaylist()) {
                     loadNext();
                 } else {
                     AppDialogPresenter dialog = getAppDialogPresenter();
@@ -481,8 +481,8 @@ public class VideoLoaderController extends BasePlayerController {
                 break;
             case PlayerConstants.PLAYBACK_MODE_PAUSE:
                 // Stop player after each video.
-                // Except when playing from queue
-                if (mPlaylist.getNext() != null && !getPlayerTweaksData().isQueueRespectsPlaybackMode()) {
+                // Except when playing from queue or playlist/mix
+                if ((mPlaylist.getNext() != null && !getPlayerTweaksData().isQueueRespectsPlaybackMode()) || video.hasNextPlaylist()) {
                     loadNext();
                 } else {
                     stopPlayback();
