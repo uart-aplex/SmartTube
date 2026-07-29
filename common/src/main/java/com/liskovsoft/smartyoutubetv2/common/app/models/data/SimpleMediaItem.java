@@ -26,6 +26,7 @@ public final class SimpleMediaItem implements MediaItem {
     private boolean mIsLive;
     private boolean mIsUpcoming;
     private boolean mIsMovie;
+    private boolean mIsMembersOnly;
     private String mClickTrackingParams;
     private String mFeedbackToken;
     private String mFeedbackToken2;
@@ -73,6 +74,7 @@ public final class SimpleMediaItem implements MediaItem {
         mediaItem.mIsLive = video.isLive;
         mediaItem.mIsUpcoming = video.isUpcoming;
         mediaItem.mIsMovie = video.isMovie;
+        mediaItem.mIsMembersOnly = video.isPremium;
         mediaItem.mClickTrackingParams = video.clickTrackingParams;
         if (video.mediaItem != null) {
             mediaItem.mFeedbackToken = video.mediaItem.getFeedbackToken();
@@ -105,6 +107,11 @@ public final class SimpleMediaItem implements MediaItem {
     @Override
     public boolean isMovie() {
         return mIsMovie;
+    }
+
+    @Override
+    public boolean isMembersOnly() {
+        return mIsMembersOnly;
     }
 
     @Override

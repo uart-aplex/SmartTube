@@ -434,14 +434,25 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
             return;
         }
 
+        // DEBUG-INSTRUMENTATION: log why a click might route to channel uploads grid
+        Log.d(TAG, "onVideoItemClicked: title=" + item.title
+                + " videoId=" + item.videoId
+                + " channelId=" + item.channelId
+                + " hasVideo=" + item.hasVideo()
+                + " belongsToChannelUploads=" + item.belongsToChannelUploads()
+                + " isMembersOnly=" + item.isPremium
+                + " isMultiGridChannelUploadsSection=" + isMultiGridChannelUploadsSection());
+
         // Check that channels new look enabled and we're on the first columnAdd commentMore actions
         if (belongsToChannelUploadsMultiGrid(item)) {
+            Log.d(TAG, "ROUTE -> updateChannelUploadsMultiGrid (channel grid instead of player)");
             if (getMainUIData().isUploadsAutoLoadEnabled()) {
                 VideoActionPresenter.instance(getContext()).apply(item);
             } else {
                 updateChannelUploadsMultiGrid(item);
             }
         } else {
+            Log.d(TAG, "ROUTE -> VideoActionPresenter.apply (normal play)");
             VideoActionPresenter.instance(getContext()).apply(item);
         }
     }
@@ -932,7 +943,12 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
     }
 
     private boolean belongsToChannelUploadsMultiGrid(Video item) {
-        return isMultiGridChannelUploadsSection() && belongsToChannelUploads(item);
+        boolean result = isMultiGridChannelUploadsSection() && belongsToChannelUploads(item);
+        Log.d(TAG, "belongsToChannelUploadsMultiGrid: result=" + result
+                + " isMultiGrid=" + isMultiGridChannelUploadsSection()
+                + " belongsToChannelUploads=" + item.belongsToChannelUploads()
+                + " hasVideo=" + item.hasVideo());
+        return result;
     }
 
     private boolean belongsToChannelUploads(Video item) {
