@@ -132,11 +132,12 @@ public class VideoCardPresenter extends LongClickPresenter {
         cardView.setBadgeText(
                 video.hasNewContent ? context.getString(R.string.badge_new_content) :
                 video.isLive ? context.getString(R.string.badge_live) :
+                video.isPremium ? context.getString(R.string.badge_members_only) :
                 video.isShorts ? context.getString(R.string.header_shorts).toUpperCase() :
                 video.badge
         );
-        cardView.setBadgeColor(video.hasNewContent || video.isLive || video.isUpcoming ?
-                ContextCompat.getColor(context, R.color.dark_red) : ContextCompat.getColor(context, R.color.black));
+        cardView.setBadgeColor(video.hasNewContent || video.isLive || video.isUpcoming || video.isPremium ?
+                ContextCompat.getColor(context, video.isPremium ? R.color.dark_green : R.color.dark_red) : ContextCompat.getColor(context, R.color.black));
 
         if (mCardPreviewType != MainUIData.CARD_PREVIEW_DISABLED) {
             cardView.setPreview(video);

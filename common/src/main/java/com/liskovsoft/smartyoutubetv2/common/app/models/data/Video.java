@@ -75,6 +75,7 @@ public final class Video {
     public boolean isShorts;
     public boolean isChapter;
     public boolean isMovie;
+    public boolean isPremium;
     public boolean isSubscribed;
     public boolean isRemote;
     public int groupPosition = -1; // group position in multi-grid fragments
@@ -157,6 +158,7 @@ public final class Video {
         video.isUpcoming = item.isUpcoming();
         video.isShorts = item.isShorts();
         video.isMovie = item.isMovie();
+        video.isPremium = item.isMembersOnly();
         video.clickTrackingParams = item.getClickTrackingParams();
         video.durationMs = item.getDurationMs();
         video.searchQuery = item.getSearchQuery();
