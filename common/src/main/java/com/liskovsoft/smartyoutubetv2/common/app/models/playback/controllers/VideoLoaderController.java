@@ -333,6 +333,9 @@ public class VideoLoaderController extends BasePlayerController {
             //} else { // 18+ video or the video is hidden/removed
             //    scheduleNextVideoTimer(5_000);
             //}
+        } else if (preferSabrFormats(formatInfo)) {
+            Log.d(TAG, "Loading regular video in sabr format...");
+            player.openSabr(formatInfo);
         } else if (acceptAdaptiveFormats(formatInfo) && formatInfo.containsDashFormats()) {
             Log.d(TAG, "Loading regular video in dash format...");
 
@@ -561,6 +564,10 @@ public class VideoLoaderController extends BasePlayerController {
         }
 
         return formatInfo.isLive() && formatInfo.containsDashUrl();
+    }
+
+    private boolean preferSabrFormats(MediaItemFormatInfo formatInfo) {
+        return !formatInfo.isLive() && acceptAdaptiveFormats(formatInfo) && formatInfo.containsSabrFormats();
     }
 
     @Override
