@@ -5,6 +5,7 @@ import android.annotation.SuppressLint;
 import com.liskovsoft.sharedutils.helpers.Helpers;
 import com.liskovsoft.sharedutils.helpers.MessageHelpers;
 import com.liskovsoft.sharedutils.mylogger.Log;
+import com.liskovsoft.smartyoutubetv2.common.BuildConfig;
 import com.liskovsoft.smartyoutubetv2.common.R;
 import com.liskovsoft.smartyoutubetv2.common.app.models.data.Video;
 import com.liskovsoft.smartyoutubetv2.common.app.models.playback.BasePlayerController;
@@ -22,8 +23,10 @@ import java.util.List;
 public class ErrorFixerController extends BasePlayerController implements OnLongBuffering {
     private static final String TAG = ErrorFixerController.class.getSimpleName();
     private static final long STREAM_END_THRESHOLD_MS = 180_000;
+    private static final long FORBIDDEN_RECOVERY_COOLDOWN_MS = 3_000;
     private final BufferingDetector mBufferingDetector = new BufferingDetector(this);
     private VideoLoaderController mVideoLoaderController;
+    private long mLastForbiddenRecoveryMs;
 
     @Override
     public void onInit() {
@@ -189,8 +192,17 @@ public class ErrorFixerController extends BasePlayerController implements OnLong
             restartEngine = false;
             showMessage = false;
 
+            boolean isForbiddenError = Helpers.startsWithAny(errorContent, "Response code: 403");
             boolean isGeneralError = Helpers.startsWithAny(errorContent, "Response code: 429", "Response code: 500");
-            if (isGeneralError && isSubtitlesEnabled()) {
+            if (isForbiddenError && "stbeta".equals(BuildConfig.FLAVOR)) {
+                long now = System.currentTimeMillis();
+                if (now - mLastForbiddenRecoveryMs >= FORBIDDEN_RECOVERY_COOLDOWN_MS) {
+                    mLastForbiddenRecoveryMs = now;
+                    // A 403 usually invalidates the current stream URL. Fetch it again with another client.
+                    YouTubeServiceManager.instance().switchNextClientNow();
+                }
+                showMessage = true;
+            } else if (isGeneralError && isSubtitlesEnabled()) {
                 disableSubtitles(); // Response code: 429
             } else if (isGeneralError && getPlayerTweaksData().isHighBitrateFormatsEnabled()) {
                 getPlayerTweaksData().setHighBitrateFormatsEnabled(false); // Response code: 429
