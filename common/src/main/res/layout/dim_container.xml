@@ -3,4 +3,57 @@
              android:id="@+id/dim_container"
              android:layout_width="match_parent"
              android:layout_height="match_parent"
-             android:visibility="gone"/>
+             android:background="@color/black"
+             android:visibility="gone">
+
+    <LinearLayout
+        android:id="@+id/screensaver_info"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="32dp">
+
+        <TextView
+            android:id="@+id/screensaver_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-light"
+            android:includeFontPadding="false"
+            android:textColor="@color/white"
+            android:textSize="84sp" />
+
+        <TextView
+            android:id="@+id/screensaver_date"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:textColor="@color/light_grey"
+            android:textSize="30sp" />
+
+        <TextView
+            android:id="@+id/screensaver_weather"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:textColor="@color/white"
+            android:textSize="28sp" />
+
+        <TextView
+            android:id="@+id/screensaver_rain"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textColor="@color/light_grey"
+            android:textSize="24sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:text="@string/screensaver_weather_source"
+            android:textColor="@color/light_grey"
+            android:textSize="14sp" />
+    </LinearLayout>
+</FrameLayout>

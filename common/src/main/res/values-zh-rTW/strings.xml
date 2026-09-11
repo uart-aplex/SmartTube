@@ -748,4 +748,25 @@
   <string name="enable_conscrypt_desc">改進某些裝置 HTTPS、TLS 和 VPN 的相容性，但偶爾可能會導致播放問題或降低網路效能</string>
   <string name="comments_disabled">此影片已關閉留言</string>
   <string name="color_scheme_dark_blue_oled">深藍色 (OLED)</string>
+  <string name="information_screensaver">資訊螢幕保護程式</string>
+  <string name="screensaver_timeout">閒置多久後顯示</string>
+  <string name="screensaver_weather_location">天氣地點</string>
+  <string name="screensaver_weather_location_value">天氣地點：%1$s</string>
+  <string name="screensaver_audio_behavior">資訊畫面顯示時的聲音</string>
+  <string name="screensaver_audio_continue">繼續播放</string>
+  <string name="screensaver_audio_pause">暫停播放</string>
+  <string name="screensaver_weather_loading">正在載入天氣...</string>
+  <string name="screensaver_weather_unavailable">暫時無法取得天氣</string>
+  <string name="screensaver_weather_format">%1$s　%2$.0f°C</string>
+  <string name="screensaver_rain_format">降雨機率 %1$d%%</string>
+  <string name="screensaver_weather_source">天氣資料：Open-Meteo</string>
+  <string name="weather_clear">晴朗</string>
+  <string name="weather_cloudy">多雲</string>
+  <string name="weather_fog">有霧</string>
+  <string name="weather_drizzle">毛毛雨</string>
+  <string name="weather_rain">下雨</string>
+  <string name="weather_snow">下雪</string>
+  <string name="weather_showers">陣雨</string>
+  <string name="weather_snow_showers">陣雪</string>
+  <string name="weather_thunderstorm">雷雨</string>
 </resources>

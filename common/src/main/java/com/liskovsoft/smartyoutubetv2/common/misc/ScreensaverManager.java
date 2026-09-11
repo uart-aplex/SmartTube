@@ -1,9 +1,13 @@
 package com.liskovsoft.smartyoutubetv2.common.misc;
 
 import android.app.Activity;
+import android.graphics.Color;
+import android.text.format.DateFormat;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 
 import com.liskovsoft.sharedutils.helpers.Helpers;
 import com.liskovsoft.sharedutils.mylogger.Log;
@@ -20,11 +24,16 @@ import com.liskovsoft.smartyoutubetv2.common.utils.Utils;
 import com.liskovsoft.sharedutils.misc.WeakHashSet;
 
 import java.lang.ref.WeakReference;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 public class ScreensaverManager {
     private static final String TAG = ScreensaverManager.class.getSimpleName();
     private static final int MODE_SCREENSAVER = 0;
     private static final int MODE_SCREEN_OFF = 1;
+    private static final long CLOCK_UPDATE_MS = 15_000;
+    private static final long POSITION_UPDATE_MS = 3 * 60 * 1_000L;
     private static final WeakHashSet<ScreensaverManager> sInstances = new WeakHashSet<>();
     private static boolean sLockInstance;
     private final WeakReference<Activity> mActivity;
@@ -32,8 +41,13 @@ public class ScreensaverManager {
     private final Runnable mDimScreen = this::dimScreen;
     private final Runnable mUndimScreen = this::undimScreen;
     private final Runnable mUnlockInstance = () -> sLockInstance = false;
+    private final Runnable mUpdateClock = this::updateClock;
+    private final Runnable mMoveInfo = this::moveInfo;
     private int mMode = MODE_SCREENSAVER;
     private boolean mIsScreenOff;
+    private boolean mIsInfoVisible;
+    private int mWakeKeyCode = KeyEvent.KEYCODE_UNKNOWN;
+    private int mInfoPosition;
     private boolean mIsBlocked;
     private final Runnable mTimeoutHandler = () -> {
         // Playing the video and dialog overlay isn't shown
@@ -87,7 +101,7 @@ public class ScreensaverManager {
     public void enableChecked() {
         // Fix dialog dimming when using the play button on the remote controller.
         // NOTE: only the last activity will show dimming and in our case the last one is PlaybackActivity
-        if (mMode == MODE_SCREEN_OFF || getAppDialogPresenter().isDialogShown()) {
+        if (mMode == MODE_SCREEN_OFF || mIsInfoVisible || getAppDialogPresenter().isDialogShown()) {
             return;
         }
 
@@ -148,6 +162,21 @@ public class ScreensaverManager {
         return mIsScreenOff;
     }
 
+    public boolean handleKeyEvent(KeyEvent event) {
+        if (event.getAction() == KeyEvent.ACTION_UP && event.getKeyCode() == mWakeKeyCode) {
+            mWakeKeyCode = KeyEvent.KEYCODE_UNKNOWN;
+            return true;
+        }
+
+        if (event.getAction() == KeyEvent.ACTION_DOWN && mIsInfoVisible) {
+            mWakeKeyCode = event.getKeyCode();
+            enable();
+            return true;
+        }
+
+        return false;
+    }
+
     public void setBlocked(boolean blocked) {
         mIsBlocked = blocked;
     }
@@ -196,8 +225,7 @@ public class ScreensaverManager {
 
         // Disable dimming on certain circumstances
         if (show && mMode == MODE_SCREENSAVER &&
-                (       isPlaying() ||
-                        isSigning() ||
+                (       isSigning() ||
                         getGeneralData().getScreensaverTimeoutMs() == GeneralData.SCREENSAVER_TIMEOUT_NEVER
                 )
         ) {
@@ -206,12 +234,19 @@ public class ScreensaverManager {
 
         int screenOffColor = Utils.getColor(activity, R.color.black, getTweaksData().getScreenOffDimmingPercents());
         //int screenOffColorResId = getPlayerTweaksData().getScreenOffDimmingPercents() == 50 ? DIM_50 : DIM_100;
-        int screensaverColor = Utils.getColor(activity, R.color.black, getGeneralData().getScreensaverDimmingPercents());
-        //int screensaverColorResId = getGeneralData().getScreensaverMode() == GeneralData.SCREENSAVER_MODE_NORMAL ? DIM_50 : DIM_100;
-
-        dimContainer.setBackgroundColor(mMode == MODE_SCREENSAVER ? screensaverColor : screenOffColor);
+        dimContainer.setBackgroundColor(mMode == MODE_SCREENSAVER ? Color.BLACK : screenOffColor);
         //dimContainer.setBackgroundResource(mMode == MODE_SCREENSAVER ? screensaverColorResId : screenOffColorResId);
         dimContainer.setVisibility(show ? View.VISIBLE : View.GONE);
+
+        View info = dimContainer.findViewById(R.id.screensaver_info);
+        mIsInfoVisible = show && mMode == MODE_SCREENSAVER;
+        info.setVisibility(mIsInfoVisible ? View.VISIBLE : View.GONE);
+
+        if (mIsInfoVisible) {
+            startInfoScreen(activity, dimContainer);
+        } else {
+            stopInfoScreen();
+        }
 
         mIsScreenOff = mMode == MODE_SCREEN_OFF && getTweaksData().getScreenOffDimmingPercents() == 100 && show;
 
@@ -231,6 +266,11 @@ public class ScreensaverManager {
 
         if (sLockInstance) {
             Helpers.enableScreensaver(activity);
+            return;
+        }
+
+        if (show && mMode == MODE_SCREENSAVER) {
+            Helpers.disableScreensaver(activity);
             return;
         }
 
@@ -257,6 +297,101 @@ public class ScreensaverManager {
 
         PlaybackView playbackView = PlaybackPresenter.instance(activity).getView();
         return playbackView != null && playbackView.isPlaying();
+    }
+
+    private void startInfoScreen(Activity activity, View dimContainer) {
+        updateClock();
+        moveInfo();
+
+        TextView weatherView = dimContainer.findViewById(R.id.screensaver_weather);
+        TextView rainView = dimContainer.findViewById(R.id.screensaver_rain);
+        weatherView.setText(R.string.screensaver_weather_loading);
+        rainView.setText("");
+
+        WeatherService.load(getGeneralData().getScreensaverWeatherLocation(), new WeatherService.Listener() {
+            @Override
+            public void onResult(WeatherService.WeatherResult result) {
+                Utils.post(() -> {
+                    if (!mIsInfoVisible) {
+                        return;
+                    }
+                    weatherView.setText(activity.getString(R.string.screensaver_weather_format,
+                            getWeatherDescription(result.weatherCode), result.temperature));
+                    rainView.setText(activity.getString(R.string.screensaver_rain_format, result.rainProbability));
+                });
+            }
+
+            @Override
+            public void onError() {
+                Utils.post(() -> {
+                    if (mIsInfoVisible) {
+                        weatherView.setText(R.string.screensaver_weather_unavailable);
+                        rainView.setText("");
+                    }
+                });
+            }
+        });
+
+        if (getGeneralData().isScreensaverPlaybackPaused() && isPlaying()) {
+            PlaybackView playbackView = PlaybackPresenter.instance(activity).getView();
+            if (playbackView != null) {
+                playbackView.setPlayWhenReady(false);
+            }
+        }
+    }
+
+    private void stopInfoScreen() {
+        Utils.removeCallbacks(mUpdateClock);
+        Utils.removeCallbacks(mMoveInfo);
+    }
+
+    private void updateClock() {
+        Activity activity = mActivity.get();
+        View container = mDimContainer.get();
+        if (!mIsInfoVisible || activity == null || container == null) {
+            return;
+        }
+
+        Locale locale = activity.getResources().getConfiguration().locale;
+        String timePattern = DateFormat.is24HourFormat(activity) ? "HH:mm" : "h:mm";
+        Date now = new Date();
+        ((TextView) container.findViewById(R.id.screensaver_time)).setText(new SimpleDateFormat(timePattern, locale).format(now));
+        ((TextView) container.findViewById(R.id.screensaver_date)).setText(new SimpleDateFormat("yyyy/MM/dd EEEE", locale).format(now));
+        Utils.removeCallbacks(mUpdateClock);
+        Utils.postDelayed(mUpdateClock, CLOCK_UPDATE_MS);
+    }
+
+    private void moveInfo() {
+        Activity activity = mActivity.get();
+        View container = mDimContainer.get();
+        if (!mIsInfoVisible || activity == null || container == null) {
+            return;
+        }
+
+        float offset = 36 * activity.getResources().getDisplayMetrics().density;
+        float[][] positions = {{0, 0}, {-offset, -offset}, {offset, -offset}, {offset, offset}, {-offset, offset}};
+        View info = container.findViewById(R.id.screensaver_info);
+        mInfoPosition = (mInfoPosition + 1) % positions.length;
+        info.animate().translationX(positions[mInfoPosition][0]).translationY(positions[mInfoPosition][1]).setDuration(800).start();
+        Utils.removeCallbacks(mMoveInfo);
+        Utils.postDelayed(mMoveInfo, POSITION_UPDATE_MS);
+    }
+
+    private String getWeatherDescription(int code) {
+        Activity activity = mActivity.get();
+        if (activity == null) {
+            return "";
+        }
+        if (code == 0) return activity.getString(R.string.weather_clear);
+        if (code <= 3) return activity.getString(R.string.weather_cloudy);
+        if (code == 45 || code == 48) return activity.getString(R.string.weather_fog);
+        if (code >= 51 && code <= 57) return activity.getString(R.string.weather_drizzle);
+        if (code >= 61 && code <= 67) return activity.getString(R.string.weather_rain);
+        if (code >= 71 && code <= 77) return activity.getString(R.string.weather_snow);
+        if (code >= 80 && code <= 82) return activity.getString(R.string.weather_showers);
+        if (code >= 85 && code <= 86) return activity.getString(R.string.weather_snow_showers);
+        if (code >= 95) return activity.getString(R.string.weather_thunderstorm);
+        return activity.getString(R.string.weather_cloudy);
     }
 
     private long getPosition() {

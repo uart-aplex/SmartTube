@@ -86,6 +86,8 @@ public class GeneralData implements ProfileChangeListener {
     private int mLocalDriveBackupFreqDays;
     private List<Video> mOldPinnedItems;
     private boolean mIsRemapSToSpeedToggleEnabled;
+    private String mScreensaverWeatherLocation;
+    private boolean mIsScreensaverPlaybackPaused;
     private final Runnable mPersistStateInt = this::persistStateInt;
 
     private GeneralData(Context context) {
@@ -244,6 +246,24 @@ public class GeneralData implements ProfileChangeListener {
 
     public void setScreensaverDimmingPercents(int percents) {
         mScreensaverDimmingPercents = percents;
+        persistState();
+    }
+
+    public String getScreensaverWeatherLocation() {
+        return mScreensaverWeatherLocation;
+    }
+
+    public void setScreensaverWeatherLocation(String location) {
+        mScreensaverWeatherLocation = location;
+        persistState();
+    }
+
+    public boolean isScreensaverPlaybackPaused() {
+        return mIsScreensaverPlaybackPaused;
+    }
+
+    public void setScreensaverPlaybackPaused(boolean paused) {
+        mIsScreensaverPlaybackPaused = paused;
         persistState();
     }
 
@@ -660,6 +680,8 @@ public class GeneralData implements ProfileChangeListener {
         mLocalDriveBackupFreqDays = Helpers.parseInt(split, 70, 1);
         //mIsRemapFastForwardToSpeedToggleEnabled = Helpers.parseBoolean(split, 71, false);
         mIsRemapSToSpeedToggleEnabled = Helpers.parseBoolean(split, 72, true);
+        mScreensaverWeatherLocation = Helpers.parseStr(split, 73, "Taipei");
+        mIsScreensaverPlaybackPaused = Helpers.parseBoolean(split, 74, false);
     }
 
     public void persistNow() {
@@ -685,7 +707,7 @@ public class GeneralData implements ProfileChangeListener {
                 mIsHideWatchedFromNotificationsEnabled, mChangelog, mPlayerExitShortcut, null, mIsFullscreenModeEnabled, null,
                 mIsRememberPinnedPositionEnabled, mSelectedItems, mIsFirstUseTooltipEnabled, mIsDeviceSpecificBackupEnabled, null,
                 null, mSearchExitShortcut, mGDriveBackupFreqDays, mLocalDriveBackupFreqDays, null,
-                mIsRemapSToSpeedToggleEnabled));
+                mIsRemapSToSpeedToggleEnabled, mScreensaverWeatherLocation, mIsScreensaverPlaybackPaused));
     }
 
     @Override

@@ -234,7 +234,7 @@ public class VideoStateController extends BasePlayerController {
     @Override
     public void onPlay() {
         setPlayEnabled(true);
-        showHideScreensaver(false);
+        showHideScreensaver(true);
         // throttle seeking calls
         Utils.removeCallbacks(mUpdateHistory);
 

@@ -453,34 +453,43 @@ public class GeneralSettingsPresenter extends BasePresenter<Void> {
     }
 
     private void appendScreenDimmingCategory(AppDialogPresenter settingsPresenter) {
-        settingsPresenter.appendSingleButton(UiOptionItem.from(getContext().getString(R.string.screen_dimming), optionItem -> {
+        settingsPresenter.appendSingleButton(UiOptionItem.from(getContext().getString(R.string.information_screensaver), optionItem -> {
             AppDialogPresenter presenter = AppDialogPresenter.instance(getContext());
-            appendScreenDimmingAmountCategory(presenter);
             appendScreenDimmingTimeoutCategory(presenter);
-            presenter.showDialog(getContext().getString(R.string.screen_dimming));
+            appendScreensaverWeatherLocation(presenter);
+            appendScreensaverPlaybackCategory(presenter);
+            presenter.showDialog(getContext().getString(R.string.information_screensaver));
         }));
     }
 
-    private void appendScreenDimmingAmountCategory(AppDialogPresenter settingsPresenter) {
+    private void appendScreensaverWeatherLocation(AppDialogPresenter settingsPresenter) {
+        String location = mGeneralData.getScreensaverWeatherLocation();
+        settingsPresenter.appendSingleButton(UiOptionItem.from(
+                getContext().getString(R.string.screensaver_weather_location_value, location), option -> {
+                    settingsPresenter.closeDialog();
+                    SimpleEditDialog.show(
+                            getContext(),
+                            getContext().getString(R.string.screensaver_weather_location),
+                            location,
+                            newValue -> {
+                                String trimmedValue = newValue.trim();
+                                if (trimmedValue.isEmpty()) {
+                                    return false;
+                                }
+                                mGeneralData.setScreensaverWeatherLocation(trimmedValue);
+                                return true;
+                            });
+                }));
+    }
+
+    private void appendScreensaverPlaybackCategory(AppDialogPresenter settingsPresenter) {
         List<OptionItem> options = new ArrayList<>();
-
-        int activeMode = mGeneralData.getScreensaverDimmingPercents();
-
-        for (int dimPercents : Helpers.range(10, 80, 10)) {
-            options.add(UiOptionItem.from(
-                    dimPercents + "%",
-                    option -> mGeneralData.setScreensaverDimmingPercents(dimPercents),
-                    activeMode == dimPercents));
-        }
-
-        for (int dimPercents : Helpers.range(85, 100, 5)) {
-            options.add(UiOptionItem.from(
-                    dimPercents + "%",
-                    option -> mGeneralData.setScreensaverDimmingPercents(dimPercents),
-                    activeMode == dimPercents));
-        }
-
-        settingsPresenter.appendRadioCategory(getContext().getString(R.string.screen_dimming_amount), options);
+        boolean paused = mGeneralData.isScreensaverPlaybackPaused();
+        options.add(UiOptionItem.from(getContext().getString(R.string.screensaver_audio_continue),
+                option -> mGeneralData.setScreensaverPlaybackPaused(false), !paused));
+        options.add(UiOptionItem.from(getContext().getString(R.string.screensaver_audio_pause),
+                option -> mGeneralData.setScreensaverPlaybackPaused(true), paused));
+        settingsPresenter.appendRadioCategory(getContext().getString(R.string.screensaver_audio_behavior), options);
     }
 
     @SuppressLint("StringFormatMatches")
@@ -510,7 +519,7 @@ public class GeneralSettingsPresenter extends BasePresenter<Void> {
                     screensaverTimeoutMs == timeoutMs));
         }
 
-        settingsPresenter.appendRadioCategory(getContext().getString(R.string.screen_dimming_timeout), options);
+        settingsPresenter.appendRadioCategory(getContext().getString(R.string.screensaver_timeout), options);
     }
 
     //private void appendTimeFormatCategory(AppDialogPresenter settingsPresenter) {
