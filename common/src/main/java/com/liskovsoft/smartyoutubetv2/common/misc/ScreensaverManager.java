@@ -225,7 +225,8 @@ public class ScreensaverManager {
 
         // Disable dimming on certain circumstances
         if (show && mMode == MODE_SCREENSAVER &&
-                (       isSigning() ||
+                (       isPlaying() ||
+                        isSigning() ||
                         getGeneralData().getScreensaverTimeoutMs() == GeneralData.SCREENSAVER_TIMEOUT_NEVER
                 )
         ) {
