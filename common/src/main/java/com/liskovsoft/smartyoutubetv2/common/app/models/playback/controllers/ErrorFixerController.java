@@ -1,6 +1,7 @@
 package com.liskovsoft.smartyoutubetv2.common.app.models.playback.controllers;
 
 import android.annotation.SuppressLint;
+import android.os.SystemClock;
 
 import com.liskovsoft.sharedutils.helpers.Helpers;
 import com.liskovsoft.sharedutils.helpers.MessageHelpers;
@@ -12,6 +13,8 @@ import com.liskovsoft.smartyoutubetv2.common.app.models.playback.BasePlayerContr
 import com.liskovsoft.smartyoutubetv2.common.app.models.playback.listener.PlayerEventListener;
 import com.liskovsoft.smartyoutubetv2.common.exoplayer.selector.FormatItem;
 import com.liskovsoft.smartyoutubetv2.common.misc.BufferingDetector;
+import com.liskovsoft.smartyoutubetv2.common.misc.StartupPlaybackMonitor;
+import com.liskovsoft.youtubeapi.videoinfo.V2.VideoInfoService;
 import com.liskovsoft.smartyoutubetv2.common.misc.BufferingDetector.OnLongBuffering;
 import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerData;
 import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerTweaksData;
@@ -27,14 +30,75 @@ public class ErrorFixerController extends BasePlayerController implements OnLong
     private final BufferingDetector mBufferingDetector = new BufferingDetector(this);
     private VideoLoaderController mVideoLoaderController;
     private long mLastForbiddenRecoveryMs;
+    private final StartupPlaybackMonitor mStartupMonitor = new StartupPlaybackMonitor();
+    private final Runnable mSamplePlayback = this::samplePlayback;
+    private String mLoadedClient;
+    private boolean mWatchingPlayback;
+
+    private void samplePlayback() {
+        if (!mWatchingPlayback || getPlayer() == null || getVideo() == null) return;
+        if (!getPlayer().getPlayWhenReady()) {
+            mStartupMonitor.resetObservation();
+        } else if (isOfflineVideo() && getPlayer().getDurationMs() > 20_000) {
+            StartupPlaybackMonitor.Result result = mStartupMonitor.sample(SystemClock.elapsedRealtime(),
+                    getPlayer().getPositionMs(), getPlayer().isPlaying());
+            if (result == StartupPlaybackMonitor.Result.RECOVER) {
+                recoverStartupClient("position");
+                return;
+            } else if (result == StartupPlaybackMonitor.Result.HEALTHY) {
+                VideoInfoService.instance().confirmPlaybackClient(getVideo().videoId, mLoadedClient);
+            }
+        }
+        Utils.postDelayed(mSamplePlayback, 500);
+    }
+
+    private void recoverStartupClient(String reason) {
+        Log.d(TAG, "Startup recovery: reason=%s, client=%s, positionMs=%s",
+                reason, mLoadedClient, getPlayer().getPositionMs());
+        stopWatchingPlayback();
+        mBufferingDetector.reset();
+        MessageHelpers.showLongMessage(getContext(), "Fixing stalled client...");
+        getVideo().pendingPosMs = Math.max(0, getPlayer().getPositionMs());
+        YouTubeServiceManager.instance().switchNextClientNow();
+        mVideoLoaderController.reloadVideo();
+    }
+
+    @Override
+    public void onVideoLoaded(Video item) {
+        mLoadedClient = item != null ? VideoInfoService.instance().getPlaybackClient(item.videoId) : null;
+    }
+
+    private void watchPlayback() {
+        if (mWatchingPlayback) return;
+        mWatchingPlayback = true;
+        Utils.postDelayed(mSamplePlayback, 500);
+    }
+
+    private void stopWatchingPlayback() {
+        mWatchingPlayback = false;
+        Utils.removeCallbacks(mSamplePlayback);
+    }
+
+    @Override
+    public void onSeekPositionChanged(long positionMs) {
+        mStartupMonitor.resetObservation();
+    }
+
+    @Override
+    public void onPlayEnd() {
+        stopWatchingPlayback();
+        mStartupMonitor.resetObservation();
+    }
 
     @Override
     public void onInit() {
         mVideoLoaderController = getController(VideoLoaderController.class);
+        Log.i(TAG, "Playback diagnostics: quiet-http-v1");
     }
 
     @Override
     public void onEngineError(int type, int rendererIndex, Throwable error) {
+        stopWatchingPlayback();
         Log.e(TAG, "Player error occurred: %s. Trying to fix…", type);
 
         runEngineErrorAction(type, rendererIndex, error);
@@ -81,10 +145,13 @@ public class ErrorFixerController extends BasePlayerController implements OnLong
     @Override
     public void onBuffering() {
         mBufferingDetector.onStartBuffering();
+        watchPlayback();
     }
 
     @Override
     public void onSeekEnd() {
+        // Explicit seeks include SponsorBlock, restored positions and manual seeking.
+        mStartupMonitor.resetObservation();
         mBufferingDetector.reset();
         // Needed to detect additional buffering (e.g. hanged clients).
         // Don't worry this event will be canceled by subsequent onPlay() or onPause() if everything is ok.
@@ -94,26 +161,36 @@ public class ErrorFixerController extends BasePlayerController implements OnLong
     @Override
     public void onPlay() {
         mBufferingDetector.onStopBuffering();
+        watchPlayback();
     }
 
     @Override
     public void onPause() {
         mBufferingDetector.onStopBuffering();
+        stopWatchingPlayback();
+        mStartupMonitor.resetObservation();
     }
 
     @Override
     public void onNewVideo(Video item) {
         mBufferingDetector.start();
+        stopWatchingPlayback();
+        mLoadedClient = null;
+        mStartupMonitor.begin(item != null ? item.videoId : null);
+        mStartupMonitor.onReload();
     }
 
     @Override
     public void onFinish() {
         mBufferingDetector.reset();
+        stopWatchingPlayback();
+        mStartupMonitor.begin(null);
     }
 
     @Override
     public void onEngineReleased() {
         mBufferingDetector.reset();
+        stopWatchingPlayback();
     }
 
     private void runEngineErrorAction(int type, int rendererIndex, Throwable error) {
@@ -127,6 +204,19 @@ public class ErrorFixerController extends BasePlayerController implements OnLong
             // Url no longer works (e.g. live stream ended)
             getMainController().onPlayEnd();
             return;
+        }
+
+        if (type == PlayerEventListener.ERROR_TYPE_SOURCE &&
+                rendererIndex != PlayerEventListener.RENDERER_INDEX_SUBTITLE && isOfflineVideo() &&
+                (getPlayer().getDurationMs() <= 0 || getPlayer().getDurationMs() > 20_000)) {
+            long position = getPlayer().getPositionMs();
+            Log.d(TAG, "Startup source error: client=%s, positionMs=%s, durationMs=%s",
+                    mLoadedClient, position, getPlayer().getDurationMs());
+            if (mStartupMonitor.onSourceError(SystemClock.elapsedRealtime(), position) ==
+                    StartupPlaybackMonitor.Result.RECOVER) {
+                recoverStartupClient("repeated-source-errors");
+                return;
+            }
         }
 
         applyEngineErrorAction(type, rendererIndex, error);

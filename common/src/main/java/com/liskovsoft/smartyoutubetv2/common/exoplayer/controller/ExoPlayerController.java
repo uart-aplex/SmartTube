@@ -336,7 +336,9 @@ public class ExoPlayerController implements Player.EventListener {
     @Override
     public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
         if (BuildConfig.DEBUG) {
-            Log.d(TAG, "onPlayerStateChanged: " + TrackSelectorUtil.stateToString(playbackState));
+            Log.d(TAG, "onPlayerStateChanged: %s, playWhenReady=%s, positionMs=%s, bufferedMs=%s, durationMs=%s",
+                    TrackSelectorUtil.stateToString(playbackState), playWhenReady, getPositionMs(),
+                    mPlayer != null ? mPlayer.getBufferedPosition() : -1, getDurationMs());
         }
 
         boolean isPlayPressed = Player.STATE_READY == playbackState && playWhenReady;
