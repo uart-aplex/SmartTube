@@ -2,7 +2,8 @@
 
 See [the known-good 32.55 snapshot notes](docs/KNOWN_GOOD_32.55.md) for the
 HTTP logging fix, observed results, preserved patches and rebuild instructions.
-This backup does not include upstream 32.56.
+This working branch includes upstream 32.56. See [the upgrade notes](docs/UPGRADE_32.56.md).
+The separate 32.55 backup branch and APK remain unchanged.
 
 [<img src="images/badge_fdroid.png" alt="Get it on F-Droid" height="80">](https://f-droid.org/packages/app.smarttube.fdroid/)
 [<img src="images/badge_github.png" alt="Get it on GitHub" height="80">](https://github.com/yuliskov/SmartTube/releases)
