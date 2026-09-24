@@ -231,21 +231,7 @@ public class MotherActivity extends FragmentActivity {
         super.onPause();
 
         // Stop managing the screensaver so a paused activity cannot keep the display awake.
-        // NOTE: moving suspend to onStop to prevent screen flicker when persistent dimming is enabled
-        if (!mIsBackPressed) {
-            mScreensaverManager.suspend();
-        }
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-
-        // Stop managing the screensaver so a paused activity cannot keep the display awake.
-        // NOTE: moving suspend to onStop to prevent screen flicker when persistent dimming is enabled
-        if (mIsBackPressed) {
-            mScreensaverManager.suspend();
-        }
+        mScreensaverManager.suspend();
     }
 
     @Override
@@ -443,6 +429,14 @@ public class MotherActivity extends FragmentActivity {
 
     protected MediaServiceData getMediaServiceData() {
         return MediaServiceData.instance();
+    }
+
+    protected final boolean isBackPressed() {
+        return mIsBackPressed;
+    }
+
+    protected final void resetBackState() {
+        mIsBackPressed = false;
     }
 
     private void initEdgeSlide() {
