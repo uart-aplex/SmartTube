@@ -42,6 +42,12 @@ Results on 2026-09-24:
 - In-place installation on the connected Xiaomi TV succeeded without clearing data.
 - Installed package verified as `org.smarttube.stable`, 32.56 / 2446.
 - Automated video launch was blocked by the execution tool policy. The app was
-  not running when checked after installation. Playback, buffering, HTTP-log
-  counts during playback and clock behavior remain pending a manual launch.
-- No push of this working branch was performed; the 32.55 remote backup is unchanged.
+  not running when checked after installation. Automated playback diagnostics
+  and HTTP-log counts during playback were not collected.
+- Subsequent user-reported TV testing: Mix, member functionality and sleep behavior
+  all worked normally. This is manual user validation, not an automated test result.
+- Long-duration playback stability and recurrence of the earlier looping/buffering
+  issue have not been explicitly confirmed for 32.56.
+- Publication target: `uart-aplex/SmartTube`, branch
+  `fix/smarttube-32.56-quiet-http`, with the matching MediaServiceCore branch.
+  The 32.55 remote backup remains unchanged.
