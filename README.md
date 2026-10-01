@@ -5,6 +5,12 @@ HTTP logging fix, observed results, preserved patches and rebuild instructions.
 This working branch includes upstream 32.56. See [the upgrade notes](docs/UPGRADE_32.56.md).
 The separate 32.55 backup branch and APK remain unchanged.
 
+The 32.56 baseline also avoids an AI BOX startup ANR caused by FileProvider
+waiting for external storage during process initialization. Update APKs already
+use internal cache, so the provider now exposes only that cache directory.
+See [the startup ANR report](docs/AI_BOX_STARTUP_ANR.md) for evidence, the
+workaround, test results and the remaining immediate-after-boot validation.
+
 [<img src="images/badge_fdroid.png" alt="Get it on F-Droid" height="80">](https://f-droid.org/packages/app.smarttube.fdroid/)
 [<img src="images/badge_github.png" alt="Get it on GitHub" height="80">](https://github.com/yuliskov/SmartTube/releases)
 
